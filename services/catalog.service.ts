@@ -1,6 +1,41 @@
 import axios from 'axios';
+import { getApiBaseUrl } from './api.config';
 
-export const API_BASE_URL = 'http://localhost:4000';
+export const API_BASE_URL = getApiBaseUrl();
+
+// Imágenes locales para el caso de Sillas (fallback si el backend no manda imagen correcta).
+const LOCAL_SILLAS_IMAGES: Record<number, any> = {
+  1: require('../assets/images/Silla1.png'),
+  2: require('../assets/images/Silla2.png'),
+  3: require('../assets/images/Silla3.png'),
+  4: require('../assets/images/Silla4.png'),
+  5: require('../assets/images/Silla5.png'),
+  6: require('../assets/images/Silla6.png'),
+};
+
+// Mapeo por nombre real del producto -> imagen local.
+// Ej:
+// - TireSoul => Silla1.png
+// - NeoLlan => Silla2.png
+// - ecoas => Silla3.png
+// - blackchan => Silla4.png
+// - fridaybaby => Silla5.png
+// - batch => Silla6.png
+const LOCAL_SILLAS_BY_PRODUCT_NAME: Record<string, number> = {
+  tiresoul: 1,
+  neollan: 2,
+  ecoas: 3,
+  blackchan: 4,
+  fridaybaby: 5,
+  batch: 6,
+};
+
+const normalize = (value?: string) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
 export interface ImagenResponse {
   success: boolean;
@@ -81,7 +116,40 @@ export const getImagenesPorCategoria = async (categoria: string): Promise<Imagen
 
 // Función helper para obtener la URL completa de una imagen
 export const getImagenUrl = (rutaImagen: string): string => {
+  // Si el backend ya entrega URL completa, no la prefijamos.
+  if (rutaImagen.startsWith('http://') || rutaImagen.startsWith('https://')) {
+    return rutaImagen;
+  }
   return `${API_BASE_URL}${rutaImagen}`;
+};
+
+export const getProductoImageSource = (producto: {
+  nombre?: string;
+  imagenUrl?: string;
+  categoria?: { nombre?: string };
+}) => {
+  const nombre = normalize(producto?.nombre);
+  const categoriaNombre = normalize(producto?.categoria?.nombre);
+
+  const isSilla = categoriaNombre.includes('silla') || nombre.includes('silla');
+  if (isSilla) {
+    const mappedSillaNumero = LOCAL_SILLAS_BY_PRODUCT_NAME[nombre];
+    if (mappedSillaNumero && LOCAL_SILLAS_IMAGES[mappedSillaNumero]) {
+      return LOCAL_SILLAS_IMAGES[mappedSillaNumero];
+    }
+
+    const match = nombre.match(/silla\s*(\d+)/i);
+    const sillaNumero = match ? Number(match[1]) : NaN;
+    if (!Number.isNaN(sillaNumero) && LOCAL_SILLAS_IMAGES[sillaNumero]) {
+      return LOCAL_SILLAS_IMAGES[sillaNumero];
+    }
+  }
+
+  if (producto?.imagenUrl) {
+    return { uri: getImagenUrl(producto.imagenUrl) };
+  }
+
+  return null;
 };
 
 export const buscarProductosPorNombre = async (nombre: string) => {

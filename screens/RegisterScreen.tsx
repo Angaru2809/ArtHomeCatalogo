@@ -4,7 +4,7 @@ import { Formik } from 'formik';
 import React, { useState } from 'react';
 import { ActivityIndicator, Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as Yup from 'yup';
-import { authService } from '../services';
+import authService from '../services/auth.service';
 
 const ciudades = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena'];
 const roles = ['Administrador', 'Usuario'];

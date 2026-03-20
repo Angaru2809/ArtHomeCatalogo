@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:4000/api/resenas';
+import { axiosInstance } from './auth.service';
 
 export interface Resena {
   id?: number;
@@ -11,21 +9,21 @@ export interface Resena {
 }
 
 export const crearResena = async (resena: Omit<Resena, 'id' | 'fechaResena'>) => {
-  const response = await axios.post(API_URL, resena);
+  const response = await axiosInstance.post('/resenas', resena);
   return response.data;
 };
 
 export const obtenerResenas = async () => {
-  const response = await axios.get(API_URL);
+  const response = await axiosInstance.get('/resenas');
   return response.data;
 };
 
 export const eliminarResena = async (id: number) => {
-  const response = await axios.delete(`${API_URL}/${id}`);
+  const response = await axiosInstance.delete(`/resenas/${id}`);
   return response.data;
 };
 
 export const editarResena = async (id: number, data: Partial<Resena>) => {
-  const response = await axios.put(`${API_URL}/${id}`, data);
+  const response = await axiosInstance.put(`/resenas/${id}`, data);
   return response.data;
 }; 

@@ -1,4 +1,6 @@
-export const API_BASE_URL = 'http://localhost:4000';
+import { getApiBaseUrl } from './api.config';
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export interface ImagenResponse {
   success: boolean;

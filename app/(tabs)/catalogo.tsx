@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { buscarProductosPorNombre, getAllProductos, getCategorias, getImagenUrl, getProductosPorCategoriaNombre } from '../../services/catalog.service';
+import { buscarProductosPorNombre, getAllProductos, getCategorias, getProductoImageSource, getProductosPorCategoriaNombre } from '../../services/catalog.service';
 
 // Tipos explícitos
 type Categoria = {
@@ -122,13 +122,7 @@ export default function CatalogScreen() {
     }
   }, [busqueda, categoriaSeleccionada]);
 
-  // Función para obtener la imagen de un producto
-  const getProductoImagen = (producto: Producto): string | null => {
-    if (producto.imagenUrl) {
-      return getImagenUrl(producto.imagenUrl);
-    }
-    return null;
-  };
+  const getProductoImagenSource = (producto: Producto) => getProductoImageSource(producto as any);
 
   // Banner dinámico según categoría
   let bannerSource = require('../../assets/images/bannerprin.png');
@@ -150,9 +144,9 @@ export default function CatalogScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity 
+              <TouchableOpacity
             style={styles.retryButton}
-            onPress={() => window.location.reload()}
+                onPress={() => router.replace('/(tabs)/catalogo')}
           >
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
@@ -263,9 +257,9 @@ export default function CatalogScreen() {
                 onPress={() => router.push(`/productoDetalle?id=${item.id}`)}
               >
                 <View style={styles.productImageContainer}>
-                  {item.imagenUrl && getProductoImagen(item) && (
+                  {getProductoImagenSource(item) && (
                     <Image
-                      source={{ uri: getProductoImagen(item)! }}
+                      source={getProductoImagenSource(item) as any}
                       style={styles.productImage}
                       resizeMode="contain"
                     />

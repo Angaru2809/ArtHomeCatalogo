@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCarrito } from '../context/CarritoContext';
 import authService from '../services/auth.service';
+import { getApiBaseUrl } from '../services/api.config';
 
 const METODOS_PAGO = ['Efectivo', 'Tarjeta', 'Transferencia'];
 
@@ -21,7 +22,7 @@ export default function PedidosScreen({ navigation, route }: { navigation: any, 
     setConfirmando(true);
     try {
       const token = await authService.getAccessToken();
-      await axios.post('http://localhost:4000/api/pedidos', {
+      await axios.post(`${getApiBaseUrl()}/api/pedidos`, {
         direccion_envio_id,
         productos: carrito.map(item => ({ producto_id: item.id, cantidad: item.cantidad })),
         total,

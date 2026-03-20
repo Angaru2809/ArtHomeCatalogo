@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { axiosInstance } from './auth.service';
+import { getApiBaseUrl } from './api.config';
 
-const API_BASE_URL = 'http://localhost:4000/api';
+const API_BASE_URL = `${getApiBaseUrl()}/api`;
 
 // Interfaces para los datos de contribución
 export interface ContribucionData {

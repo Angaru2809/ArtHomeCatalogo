@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCarrito } from '../context/CarritoContext';
-import { getProductoPorId } from '../services/catalog.service';
+import { getProductoImageSource, getProductoPorId } from '../services/catalog.service';
 
 
 export default function ProductoDetalleScreen() {
@@ -64,9 +64,9 @@ export default function ProductoDetalleScreen() {
       </View>
       <Text style={styles.encabezado}>Detalle del producto</Text>
       <View style={styles.cardDecorada}>
-        {producto.imagenUrl && (
+        {getProductoImageSource(producto) && (
           <View style={styles.imageShadowBox}>
-            <Image source={{ uri: producto.imagenUrl }} style={styles.imageDecorada} resizeMode="contain" />
+            <Image source={getProductoImageSource(producto) as any} style={styles.imageDecorada} resizeMode="contain" />
           </View>
         )}
         <Text style={styles.nombreDecorado}>{producto.nombre}</Text>

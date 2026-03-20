@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import authService from '../services/auth.service';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -146,20 +147,17 @@ export default function LoginScreen() {
         contrasena: '***'
       });
       
-      // Aquí se supone que se hace la llamada al backend para iniciar sesión
-      // y se maneja la respuesta adecuadamente
-      
+      // Login real contra el backend: guarda tokens y usuario localmente
+      await authService.login(loginData);
+
       // Limpiar el formulario
       setEmail('');
       setPassword('');
       setEmailError('');
       setPasswordError('');
-      
-      // Redirección automática después de un breve delay
-      setTimeout(() => {
-        console.log('🔄 Navegando automáticamente a donate...');
-        router.push('/(tabs)/donate');
-      }, 1000);
+
+      console.log('✅ Login OK, redirigiendo a donate...');
+      router.push('/(tabs)/donate');
       
       // Mostrar alerta de éxito
       Alert.alert(

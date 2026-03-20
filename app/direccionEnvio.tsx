@@ -3,9 +3,11 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import authService from '../services/auth.service';
+import { getApiBaseUrl } from '../services/api.config';
 
 interface Ciudad { id: number; nombre: string; }
 interface CodigoPostal { id: number; codigo: string; }
+const API_BASE_URL = getApiBaseUrl();
 
 export default function DireccionEnvioScreen({ navigation, route }: { navigation: any, route: any }) {
   const [direccion, setDireccion] = useState('');
@@ -17,8 +19,8 @@ export default function DireccionEnvioScreen({ navigation, route }: { navigation
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios.get('http://localhost:4000/api/ciudades').then(res => setCiudades(res.data));
-    axios.get('http://localhost:4000/api/codigos-postales').then(res => setCodigosPostales(res.data));
+    axios.get(`${API_BASE_URL}/api/ciudades`).then(res => setCiudades(res.data));
+    axios.get(`${API_BASE_URL}/api/codigos-postales`).then(res => setCodigosPostales(res.data));
   }, []);
 
   const handleCrearDireccion = async () => {
@@ -30,7 +32,7 @@ export default function DireccionEnvioScreen({ navigation, route }: { navigation
     try {
       const token = await authService.getAccessToken();
       const response = await axios.post(
-        'http://localhost:4000/api/direcciones-envio',
+        `${API_BASE_URL}/api/direcciones-envio`,
         {
           direccion,
           ciudad_id: ciudadId,

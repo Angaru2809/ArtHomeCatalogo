@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { getApiBaseUrl } from './api.config';
 
-const API_URL = 'http://localhost:4000/api';
+const API_URL = `${getApiBaseUrl()}/api`;
+console.log(`🌍 API base configurada: ${API_URL}`);
 
 // Configurar axios con interceptores
 const axiosInstance = axios.create({

@@ -2,6 +2,11 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Repositorios del proyecto
+
+- **Frontend (este repo)**: `https://github.com/Angaru2809/ArtHomeCatalogo.git`
+- **Backend (API)**: `https://github.com/Angaru2809/ArtHomeBackend.git`
+
 ## Get started
 
 1. Install dependencies

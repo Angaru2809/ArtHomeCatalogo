@@ -2,8 +2,8 @@ import axios from 'axios';
 import React, { useState } from 'react';
 import { Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCarrito } from '../context/CarritoContext';
-import authService from '../services/auth.service';
 import { getApiBaseUrl } from '../services/api.config';
+import authService from '../services/auth.service';
 
 const METODOS_PAGO = ['Efectivo', 'Tarjeta', 'Transferencia'];
 

@@ -1,11 +1,15 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const BACKEND_PORT = 4000;
-
-// Puedes sobreescribir la URL con una variable de entorno en el .env
-// por ejemplo: EXPO_PUBLIC_API_BASE_URL=http://192.168.1.5:4000
+/**
+ * URL base completa del API (recomendado). Ej.: EXPO_PUBLIC_API_BASE_URL=http://192.168.1.5:4000
+ * Si no está definida, se construye host + puerto (factor III: configuración por entorno).
+ */
 const OVERRIDE_URL = (process as any)?.env?.EXPO_PUBLIC_API_BASE_URL as string | undefined;
+
+/** Puerto del backend solo si no usas OVERRIDE_URL. Ej.: EXPO_PUBLIC_API_PORT=4000 */
+const API_PORT =
+  ((process as any)?.env?.EXPO_PUBLIC_API_PORT as string | undefined)?.trim() || '4000';
 
 function getExpoHostUri(): string | null {
   const expoConfigHost = (Constants as any)?.expoConfig?.hostUri as string | undefined;
@@ -28,18 +32,16 @@ export function getApiBaseUrl(): string {
   if (hostUri) {
     const host = stripPort(hostUri);
 
-    // En móvil, 'localhost' casi siempre apunta al dispositivo, no al host PC.
     if ((host === 'localhost' || host === '127.0.0.1') && Platform.OS === 'android') {
-      return `http://10.0.2.2:${BACKEND_PORT}`;
+      return `http://10.0.2.2:${API_PORT}`;
     }
 
-    return `http://${host}:${BACKEND_PORT}`;
+    return `http://${host}:${API_PORT}`;
   }
 
   if (Platform.OS === 'android') {
-    return `http://10.0.2.2:${BACKEND_PORT}`;
+    return `http://10.0.2.2:${API_PORT}`;
   }
 
-  return `http://localhost:${BACKEND_PORT}`;
+  return `http://localhost:${API_PORT}`;
 }
-

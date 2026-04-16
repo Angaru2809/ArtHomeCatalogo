@@ -2,7 +2,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
-import { ActivityIndicator, Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Button, Platform, StyleSheet, Text, TextInput, ToastAndroid, TouchableOpacity, View } from 'react-native';
 import * as Yup from 'yup';
 import authService from '../services/auth.service';
 
@@ -46,6 +46,9 @@ const RegisterScreen = () => {
       };
 
       await authService.register(registerData);
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Usuario creado exitosamente', ToastAndroid.LONG);
+      }
       router.push('/login' as any);
     } catch (err: any) {
       setError(err.message || 'Error al registrar usuario');

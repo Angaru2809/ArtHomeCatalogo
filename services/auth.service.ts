@@ -85,6 +85,11 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
+export interface RegisterResponse {
+  message?: string;
+  usuario?: any;
+}
+
 class AuthService {
   private async setTokens(accessToken: string, refreshToken: string) {
     await AsyncStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
@@ -97,10 +102,10 @@ class AuthService {
     await AsyncStorage.removeItem(USER_KEY);
   }
 
-  async register(data: RegisterData): Promise<void> {
+  async register(data: RegisterData): Promise<RegisterResponse> {
     try {
-      const response = await axiosInstance.post('/usuarios/users', data);
-      return response.data;
+      const response = await axiosInstance.post<RegisterResponse>('/usuarios/users', data);
+      return response.data ?? {};
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errorMessage = error.response?.data?.error || 

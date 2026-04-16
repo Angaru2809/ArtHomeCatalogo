@@ -11,7 +11,33 @@ const LOCAL_SILLAS_IMAGES: Record<number, any> = {
   4: require('../assets/images/Silla4.png'),
   5: require('../assets/images/Silla5.png'),
   6: require('../assets/images/Silla6.png'),
+  7: require('../assets/images/Silla7.png'),
 };
+
+const SILLA_PLACEHOLDER_COUNT = 7;
+
+/** Hash estable para elegir una silla 1..7 según producto + categoría (no cambia entre renders). */
+function hashSeed(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+/** Si no hay imagen del catálogo: una silla entre 1 y 7, estable por id + categoría + nombre. */
+function getSillaPlaceholderPorProducto(producto: {
+  id?: number;
+  nombre?: string;
+  categoria?: { nombre?: string };
+}): any {
+  const cat = normalize(producto?.categoria?.nombre);
+  const nom = normalize(producto?.nombre);
+  const id = producto?.id ?? 0;
+  const seed = hashSeed(`${id}|${cat}|${nom}`);
+  const idx = (seed % SILLA_PLACEHOLDER_COUNT) + 1;
+  return LOCAL_SILLAS_IMAGES[idx];
+}
 
 // Mapeo por nombre real del producto -> imagen local.
 // Ej:
@@ -124,6 +150,7 @@ export const getImagenUrl = (rutaImagen: string): string => {
 };
 
 export const getProductoImageSource = (producto: {
+  id?: number;
   nombre?: string;
   imagenUrl?: string;
   categoria?: { nombre?: string };
@@ -145,11 +172,13 @@ export const getProductoImageSource = (producto: {
     }
   }
 
-  if (producto?.imagenUrl) {
-    return { uri: getImagenUrl(producto.imagenUrl) };
+  const url = producto?.imagenUrl;
+  if (url && String(url).trim()) {
+    return { uri: getImagenUrl(String(url).trim()) };
   }
 
-  return null;
+  // Sin imagen en catálogo: placeholder silla 1..7 (distribución pseudoaleatoria por categoría + producto)
+  return getSillaPlaceholderPorProducto(producto);
 };
 
 export const buscarProductosPorNombre = async (nombre: string) => {

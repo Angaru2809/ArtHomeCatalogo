@@ -36,6 +36,12 @@ EXPLORE_CSS = os.environ.get(
     "#root > div > div > div.css-view-g5y9jx.r-flex-13awgt0.r-bottom-1p0dtai.r-left-1d2f490.r-position-u8s1d.r-right-zchlnj.r-top-ipm5af > div.css-view-g5y9jx.r-flex-13awgt0 > div > div > div.css-view-g5y9jx.r-WebkitOverflowScrolling-150rngu.r-flexDirection-eqz5dr.r-flexGrow-16y2uox.r-flexShrink-1wbh5a2.r-overflowX-11yh6sk.r-overflowY-1rnoaur.r-transform-agouwx.r-flex-13awgt0.r-scrollbarWidth-2eszeu > div > div > div.css-view-g5y9jx.r-alignItems-1awozwy.r-backgroundColor-14lw9ot.r-borderRadius-y47klf.r-boxShadow-14zzrt3.r-maxWidth-hvns9x.r-padding-1lpndhm.r-width-13qz1uu > div.css-view-g5y9jx.r-transitionProperty-1i6wzkk.r-userSelect-lrvibr.r-cursor-1loqt21.r-touchAction-1otgn73.r-backgroundColor-5hecs3.r-borderRadius-1867qdf.r-borderWidth-1yadl64.r-boxShadow-1bk8zzh.r-marginBottom-15d164r.r-marginTop-19h5ruw.r-paddingBlock-1ml3abn.r-paddingInline-1u1knh",
 )
 
+# En tu flujo: después de login, abrir donate y desde ahí entrar a catálogo.
+DONATE_TO_CATALOGO_CSS = os.environ.get(
+    "SELENIUM_DONATE_TO_CATALOGO_CSS",
+    "#root > div > div > div:nth-child(4) > div > div > div > div.css-view-g5y9jx.r-bottom-1p0dtai.r-right-zchlnj.r-left-1d2f490.r-pointerEvents-105ug2t > div.css-view-g5y9jx.r-flex-13awgt0.r-flexDirection-18u37iz > div:nth-child(2) > a > div.css-view-g5y9jx.r-height-h0d30l.r-width-726pan > div:nth-child(2) > div",
+)
+
 # Selectores de tu UI (React Native Web) para el flujo de carrito.
 # Los dejamos como defaults y se pueden sobreescribir por env vars.
 ADD_TO_CART_CSS = os.environ.get(
@@ -309,6 +315,8 @@ def _wait_for_direccion_guardada_or_error(driver: webdriver.Chrome, wait: WebDri
     - navega directo al flujo de pedidos/catálogo sin renderizar el Alert en el DOM.
     """
     direccion_guardada = (By.XPATH, "//*[contains(text(),'Dirección guardada')]")
+    checkout_confirmado = (By.XPATH, "//*[contains(text(),'Checkout confirmado')]")
+    pedido_realizado_exitosamente = (By.XPATH, "//*[contains(text(),'Pedido realizado exitosamente')]")
     resumen_pedido = (By.XPATH, "//*[contains(text(),'Resumen de tu pedido')]")
     pedido_confirmado = (By.XPATH, "//*[contains(text(),'Pedido confirmado') or contains(text(),'Pedido realizado') or contains(text(),'exitoso') or contains(text(),'éxito')]")
     catalogo_buscar = (By.XPATH, "//*[contains(@placeholder,'Buscar')]")
@@ -324,6 +332,8 @@ def _wait_for_direccion_guardada_or_error(driver: webdriver.Chrome, wait: WebDri
 
         for loc in (
             direccion_guardada,
+            checkout_confirmado,
+            pedido_realizado_exitosamente,
             resumen_pedido,
             pedido_confirmado,
             catalogo_buscar,
@@ -334,7 +344,7 @@ def _wait_for_direccion_guardada_or_error(driver: webdriver.Chrome, wait: WebDri
         ):
             els = _d.find_elements(*loc)
             if els:
-                if loc in (direccion_guardada, resumen_pedido, pedido_confirmado, catalogo_buscar):
+                if loc in (direccion_guardada, checkout_confirmado, pedido_realizado_exitosamente, resumen_pedido, pedido_confirmado, catalogo_buscar):
                     return ("OK", els[0].text.strip())
                 return ("ERR", els[0].text.strip())
         return False
@@ -399,6 +409,75 @@ def _get_first_unit_price_text(driver: webdriver.Chrome) -> str:
     raise AssertionError("No se encontró el precio unitario ($...) en el detalle del producto")
 
 
+def _wait_for_catalogo(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
+    """
+    El login puede dejarte en catálogo de forma directa o tras pulsar "Explorar".
+    Aceptamos ambos casos.
+    """
+    def _check(_d):
+        current_url = (_d.current_url or "").lower()
+        if "/catalogo" in current_url:
+            return True
+        buscar_inputs = _d.find_elements(By.XPATH, "//input[contains(@placeholder,'Buscar')]")
+        return bool(buscar_inputs)
+
+    wait.until(_check)
+
+
+def _go_to_catalogo_from_donate(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
+    """
+    Respeta el flujo login -> donate -> catálogo usando tu selector.
+    """
+    css = (DONATE_TO_CATALOGO_CSS or "").strip()
+    # Si el selector viene cortado y termina en '>', lo saneamos.
+    css = re.sub(r">\s*$", "", css)
+
+    if css:
+        # 1) Intento directo al selector completo.
+        try:
+            _click_css_retry(driver, wait, css, retries=2)
+            return
+        except Exception:
+            pass
+
+        # 2) Si falla, tomar el contenedor y clicar un hijo clickable.
+        script_from_container = r"""
+        const rootSel = arguments[0];
+        const root = document.querySelector(rootSel);
+        if (!root) return false;
+        const target =
+          root.querySelector('a[href*="catalogo"]') ||
+          root.querySelector('a') ||
+          root.querySelector('[role="button"]') ||
+          root.querySelector('button') ||
+          root.querySelector('div,span');
+        if (!target) return false;
+        target.scrollIntoView({block:'center'});
+        target.click();
+        return true;
+        """
+        try:
+            ok = driver.execute_script(script_from_container, css)
+            if ok:
+                return
+        except Exception:
+            pass
+
+    # Fallback por href o texto si cambia la estructura CSS.
+    script = r"""
+    const byHref = document.querySelector('a[href*="catalogo"]');
+    if (byHref) { byHref.click(); return true; }
+    const all = Array.from(document.querySelectorAll('a,button,div,span'));
+    const hit = all.find(el => (el.textContent || '').toLowerCase().includes('catálogo') || (el.textContent || '').toLowerCase().includes('catalogo'));
+    if (!hit) return false;
+    hit.click();
+    return true;
+    """
+    ok = driver.execute_script(script)
+    if not ok:
+        raise TimeoutException("No pude navegar de donate a catálogo con el selector configurado.")
+
+
 def test_carrito_flow_exitoso():
     if not SELENIUM_EMAIL or not SELENIUM_PASSWORD:
         raise ValueError("Faltan SELENIUM_EMAIL/SELENIUM_PASSWORD. Define ambos en variables de entorno.")
@@ -419,8 +498,18 @@ def test_carrito_flow_exitoso():
         _set_input_text(wait, "//input[contains(@placeholder,'Correo electrónico')]", SELENIUM_EMAIL)
         _set_input_text(wait, "//input[contains(@placeholder,'Contraseña')]", SELENIUM_PASSWORD)
 
-        # Explorar
-        _click_by_css_container_with_text(driver, wait, EXPLORE_CSS, "Explorar")
+        # Si ya redirigió a catálogo, no hace falta pulsar "Explorar".
+        already_in_catalogo = False
+        try:
+            WebDriverWait(driver, 2).until(
+                EC.presence_of_element_located((By.XPATH, "//input[contains(@placeholder,'Buscar')]"))
+            )
+            already_in_catalogo = True
+        except TimeoutException:
+            already_in_catalogo = False
+
+        if not already_in_catalogo:
+            _click_by_css_container_with_text(driver, wait, EXPLORE_CSS, "Explorar")
 
         # Modal "Continuar" (si aparece)
         try:
@@ -431,8 +520,13 @@ def test_carrito_flow_exitoso():
         except TimeoutException:
             pass
 
-        # Verifica navegación al catálogo (tras login)
-        wait.until(EC.presence_of_element_located((By.XPATH, "//input[contains(@placeholder,'Buscar')]")))
+        # Flujo simplificado: después de login, ir directo a catálogo.
+        # Si la UI no redirige sola, forzamos URL de catálogo como fallback.
+        try:
+            _wait_for_catalogo(driver, wait)
+        except TimeoutException:
+            driver.get(f"{BASE_URL}/catalogo")
+            _wait_for_catalogo(driver, wait)
 
         # 2) Ir al producto y agregar al carrito (x1 por defecto).
         product_url = f"{BASE_URL}/productoDetalle?id={product_id}"

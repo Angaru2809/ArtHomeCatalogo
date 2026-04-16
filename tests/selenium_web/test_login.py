@@ -1,4 +1,6 @@
 import os
+import urllib.request
+from urllib.error import URLError, HTTPError
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
@@ -8,10 +10,53 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
 
-BASE_URL = os.environ.get("EXPO_WEB_URL", "http://localhost:8081")
-LOGIN_URL = f"{BASE_URL}/login"
-SELENIUM_EMAIL = os.environ.get("SELENIUM_EMAIL")
-SELENIUM_PASSWORD = os.environ.get("SELENIUM_PASSWORD")
+def _resolve_base_url() -> str:
+    env_url = os.environ.get("EXPO_WEB_URL")
+    if env_url:
+        return env_url.rstrip("/")
+
+    candidates = [
+        "http://localhost:8081",
+        "http://localhost:8082",
+        "http://localhost:8080",
+        "http://127.0.0.1:8081",
+        "http://127.0.0.1:8082",
+        "http://localhost:19006",
+    ]
+    for base in candidates:
+        try:
+            with urllib.request.urlopen(f"{base}/login", timeout=1.5):
+                return base
+        except HTTPError:
+            return base
+        except URLError:
+            continue
+        except Exception:
+            continue
+    return candidates[0]
+
+
+def _load_selenium_env_file() -> None:
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    env_file = os.path.join(repo_root, "tests", "selenium_web", ".env.selenium")
+    if not os.path.exists(env_file):
+        return
+    try:
+        with open(env_file, "r", encoding="utf-8") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                key = k.strip()
+                val = v.strip().strip('"').strip("'")
+                if key and val and key not in os.environ:
+                    os.environ[key] = val
+    except Exception:
+        pass
+
+
+_load_selenium_env_file()
 
 
 def _wait_for_clickable(wait: WebDriverWait, xpath: str):
@@ -74,25 +119,34 @@ def _set_input_text(wait: WebDriverWait, xpath: str, text: str) -> None:
         raise last_exc
 
 
-def test_login_navigates_to_donate():
+def test_login_navigates_to_catalogo():
+    base_url = _resolve_base_url()
+    login_url = f"{base_url}/login"
+    selenium_email = os.environ.get("SELENIUM_EMAIL")
+    selenium_password = os.environ.get("SELENIUM_PASSWORD")
+
     # Nota: Selenium/ChromeDriver deben estar instalados en tu máquina.
     driver = webdriver.Chrome()
     driver.set_window_size(1280, 800)
 
     wait = WebDriverWait(driver, 25)
 
-    driver.get(LOGIN_URL)
+    try:
+        driver.get(login_url)
+    except Exception as e:
+        raise RuntimeError(
+            f"No pude abrir {login_url}. "
+            "Verifica que `npm run web` siga corriendo y que el puerto sea correcto."
+        ) from e
 
-    if not SELENIUM_EMAIL or not SELENIUM_PASSWORD:
+    if not selenium_email or not selenium_password:
         raise ValueError(
-            "Faltan variables de entorno. Define:\n"
-            "  SELENIUM_EMAIL\n"
-            "  SELENIUM_PASSWORD\n"
-            "para que el test use un usuario existente."
+            "Faltan credenciales. Define SELENIUM_EMAIL/SELENIUM_PASSWORD "
+            "o agrégalas en tests/selenium_web/.env.selenium."
         )
 
-    email = SELENIUM_EMAIL
-    password = SELENIUM_PASSWORD
+    email = selenium_email
+    password = selenium_password
 
     _set_input_text(
         wait,
@@ -146,23 +200,22 @@ def test_login_navigates_to_donate():
         pass
 
     try:
-        # Validación: en donate aparece el botón/texto "Enviar Donación"
-        donate_cta = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.XPATH, "//*[contains(text(),'Enviar Donación')]"))
+        # Validación: tras login se muestra catálogo (input Buscar)
+        catalogo_search = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.XPATH, "//input[contains(@placeholder,'Buscar')]"))
         )
-        assert donate_cta.is_displayed()
+        assert catalogo_search.is_displayed()
     except TimeoutException as e:
-        # Si no llegamos a donate, intenta capturar un mensaje de error de login para diagnosticar.
+        # Si no llegamos al catálogo, intenta capturar un mensaje de error de login para diagnosticar.
         error_candidates = driver.find_elements(
             By.XPATH,
             "//*[contains(text(),'Error en el Login') or contains(text(),'Credenciales') or contains(text(),'Entendido')]",
         )
         details = error_candidates[0].text.strip() if error_candidates else "No se encontró mensaje de error visible"
-        raise AssertionError(f"No se navegó a Donate. Posible fallo de login. Detalle: {details}") from e
+        raise AssertionError(f"No se navegó al catálogo. Posible fallo de login. Detalle: {details}") from e
     finally:
         driver.quit()
 
 
 if __name__ == "__main__":
-    test_login_navigates_to_donate()
-
+    test_login_navigates_to_catalogo()

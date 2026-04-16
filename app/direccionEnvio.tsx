@@ -2,8 +2,8 @@ import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import authService from '../services/auth.service';
 import { getApiBaseUrl } from '../services/api.config';
+import authService from '../services/auth.service';
 
 interface Ciudad { id: number; nombre: string; }
 interface CodigoPostal { id: number; codigo: string; }
@@ -45,7 +45,16 @@ export default function DireccionEnvioScreen({ navigation, route }: { navigation
       );
       setLoading(false);
       const direccion_envio_id = response.data.id;
-      navigation.navigate('pedidos', { direccion_envio_id });
+      Alert.alert(
+        'Checkout confirmado',
+        'Pedido realizado exitosamente',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('pedidos', { direccion_envio_id })
+          }
+        ]
+      );
     } catch (error: any) {
       setLoading(false);
       Alert.alert('Error', error.response?.data?.error || 'No se pudo crear la dirección');

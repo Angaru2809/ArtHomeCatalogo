@@ -156,23 +156,9 @@ export default function LoginScreen() {
       setEmailError('');
       setPasswordError('');
 
-      console.log('✅ Login OK, redirigiendo a donate...');
-      router.push('/(tabs)/donate');
+      console.log('✅ Login OK, redirigiendo a catálogo...');
       
-      // Mostrar alerta de éxito
-      Alert.alert(
-        '¡Inicio de Sesión Exitoso! 🎉',
-        'Bienvenido de vuelta. Serás redirigido a la página de donaciones.',
-        [
-          {
-            text: 'Continuar',
-            onPress: () => {
-              console.log('🔄 Navegando a donate...');
-              router.push('/(tabs)/donate');
-            },
-          },
-        ]
-      );
+      router.replace('/(tabs)/catalogo');
     } catch (error) {
       console.log('❌ Error en login:', error);
       let errorMessage = 'Error al iniciar sesión';

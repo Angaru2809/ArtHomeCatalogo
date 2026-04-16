@@ -4,7 +4,7 @@ import * as Font from 'expo-font';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Platform, ScrollView, StyleSheet, Text, TextInput, ToastAndroid, TouchableOpacity, View } from 'react-native';
 import authService, { Ciudad, Role } from '../services/auth.service';
 
 type KeyboardType = 'default' | 'number-pad' | 'decimal-pad' | 'numeric' | 'email-address' | 'phone-pad';
@@ -377,7 +377,9 @@ export default function RegisterScreen({ navigation }: { navigation: any }) {
       //   contrasena: '***'
       // });
       
-      await authService.register(registerData);
+      const result = await authService.register(registerData);
+      const backendMessage = (result?.message ?? '').trim();
+      const successMessage = backendMessage || 'Usuario creado exitosamente';
       
       // console.log('✅ Registro exitoso');
       
@@ -396,28 +398,25 @@ export default function RegisterScreen({ navigation }: { navigation: any }) {
       setContrasenaError('');
       setConfirmarContrasenaError('');
       
-      // Mostrar alerta de éxito
-      Alert.alert(
-        '¡Registro Exitoso! 🎉',
-        'Tu cuenta ha sido creada correctamente. Ahora puedes iniciar sesión.',
-        [
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(successMessage, ToastAndroid.LONG);
+        router.push('/login');
+      } else {
+        Alert.alert('Registro exitoso', successMessage, [
           {
             text: 'Iniciar Sesión',
-            onPress: () => {
-              // console.log('🔄 Navegando a login...');
-              router.push('/login');
-            },
+            onPress: () => router.push('/login'),
           },
-        ]
-      );
+        ]);
+      }
     } catch (error) {
       // console.log('❌ Error en registro:', error);
       let errorMessage = 'Error al registrar usuario';
       
       if (error instanceof Error) {
         // Manejar errores específicos del backend
-        if (error.message.includes('ya existe')) {
-          errorMessage = 'Ya existe una cuenta con este email.';
+        if (/ya est[aá] registrado|ya existe/i.test(error.message)) {
+          errorMessage = error.message;
         } else if (error.message.includes('ciudad')) {
           errorMessage = 'La ciudad seleccionada no es válida.';
         } else if (error.message.includes('rol')) {
